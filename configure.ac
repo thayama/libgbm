@@ -35,8 +35,8 @@ AM_MAINTAINER_MODE
 AC_PROG_LIBTOOL
 
 # Obtain compiler/linker options for dependencies
-PKG_CHECK_MODULES(UDEV, udev)
-PKG_CHECK_MODULES(DRM, libdrm)
+PKG_CHECK_MODULES([LIBUDEV], [libudev])
+PKG_CHECK_MODULES([DRM], [libdrm])
 
 AC_CONFIG_FILES([Makefile gbm.pc])
 AC_OUTPUT
