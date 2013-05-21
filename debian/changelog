@@ -1,0 +1,57 @@
+libgbm (9.0.0-8glsdk1) precise; urgency=low
+
+  * Updated control  (removed blank lines)
+  * Fixed mk-build-deps error
+
+ -- Nikhil Devshatwar <nikhil.nd@ti.com>  Tue, 05 Mar 2013 05:50:42 +0000
+
+libgbm (9.0.0-8) precise; urgency=low
+
+  * Remove untracked files
+  * gitignore
+  * Allow build for any architecture
+  * Add patch to produce libgbm.so.1.0.0
+
+ -- Vincent Stehlé <v-stehle@ti.com>  Fri, 26 Oct 2012 14:27:32 +0200
+
+libgbm (9.0.0-7) precise; urgency=low
+
+  * Update control
+
+ -- Xavier Boudet <x-boudet@ti.com>  Wed, 19 Sep 2012 12:34:48 +0200
+
+libgbm (9.0.0-6) precise; urgency=low
+
+  * Update Vcs-Git
+
+ -- Xavier Boudet <x-boudet@ti.com>  Mon, 17 Sep 2012 19:17:52 +0200
+
+libgbm (9.0.0-5) precise; urgency=low
+
+  * Update control
+
+ -- Xavier Boudet <x-boudet@ti.com>  Fri, 14 Sep 2012 17:05:24 +0200
+
+libgbm (9.0.0-4) precise; urgency=low
+
+  * Update configure.ac check modules
+
+ -- Xavier Boudet <x-boudet@ti.com>  Fri, 14 Sep 2012 16:36:48 +0200
+
+libgbm (9.0.0-3) precise; urgency=low
+
+  * Update to libudev.pc name
+
+ -- Xavier Boudet <x-boudet@ti.com>  Fri, 14 Sep 2012 15:55:14 +0200
+
+libgbm (9.0.0-2) precise; urgency=low
+
+  * Add udev patch
+
+ -- Xavier Boudet <x-boudet@ti.com>  Thu, 13 Sep 2012 14:44:43 +0200
+
+libgbm (9.0.0-1) precise; urgency=low
+
+  * libgbm: gbm frontend used by weston compositor
+
+ -- Xavier Boudet <x-boudet@ti.com>  Thu, 13 Sep 2012 10:39:15 +0200
