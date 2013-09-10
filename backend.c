@@ -40,9 +40,7 @@
  * directory..
  */
 static const char *backends[] = {
-      "gbm_dri.so",
-      "gbm_gallium_drm.so",
-      "gbm_pvr.so",
+      "libgbm_kms.so",
 };
 
 static const void *

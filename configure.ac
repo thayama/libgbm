@@ -23,20 +23,22 @@
 # Initialize Autoconf
 AC_PREREQ([2.60])
 AC_INIT([libgbm], [1.0.0],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=wayland], [libgbm])
+        [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa], [libgbm])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 
 # Initialize Automake
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
-AM_MAINTAINER_MODE
+#AM_MAINTAINER_MODE
 
 # Initialize libtool
 AC_PROG_LIBTOOL
 
 # Obtain compiler/linker options for dependencies
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
-PKG_CHECK_MODULES([DRM], [libdrm])
+PKG_CHECK_MODULES([LIBDRM], [libdrm])
+PKG_CHECK_MODULES([LIBKMS], [libkms])
+PKG_CHECK_MODULES([WAYLAND_KMS], [wayland-kms])
 
 AC_CONFIG_FILES([Makefile gbm.pc])
 AC_OUTPUT
