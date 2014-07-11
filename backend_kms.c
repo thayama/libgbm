@@ -146,30 +146,11 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 
 	bo->size = bo->base.stride * bo->base.height;
 
-	// TODO: We have to export the handle.
-	// drmPrimeHandleToFd() or DRM_IOCTL_GEM_FLINK
-	{
-#if 0
-		if (drmPrimeHandleToFD(dev->base.base.fd, bo->base.handle.u32, DRM_CLOEXEC, &bo->fd)) {
-			// export failed...anything we can do?
-			goto error;
-		}
-#else
-		struct drm_gem_flink fl;
-		int ret;
-
-		fl.handle = bo->base.handle.u32;
-		fl.name   = 0;
-
-		ret = drmIoctl( dev->base.base.fd, DRM_IOCTL_GEM_FLINK, &fl );
-		if (ret) {
-			GBM_DEBUG("%s: %s: DRM_IOCTL_GEM_FLINK failed. %s\n", __FILE__, __func__, strerror(errno));
-			goto error;
-		}
-
-		bo->fd = fl.name;
-#endif
+	if (drmPrimeHandleToFD(dev->base.base.fd, bo->base.handle.u32, DRM_CLOEXEC, &bo->fd)) {
+		GBM_DEBUG("%s: %s: drmPrimeHandleToFD() failed. %s\n", __FILE__, __func__, strerror(errno));
+		goto error;
 	}
+
 	// Map to the user space for bo_write
 	if (usage & GBM_BO_USE_WRITE) {
 		if (kms_bo_map(bo->bo, &bo->addr))
