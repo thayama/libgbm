@@ -52,7 +52,10 @@ struct gbm_kms_surface {
 	struct gbm_surface base;
 	struct gbm_kms_bo *bo[2];
 	int front;
+	int (*set_bo)(struct gbm_kms_surface *, int, void *, uint32_t);
 };
+
+#define GBM_BO_CREATE_EMPTY (1 << 31)
 
 /* Internal API */
 static inline struct gbm_kms_surface *gbm_kms_surface(struct gbm_surface *surface)
@@ -68,6 +71,11 @@ static inline void gbm_kms_set_front(struct gbm_kms_surface *surface, int front)
 static inline int gbm_kms_is_bo_locked(struct gbm_kms_bo *bo)
 {
 	return bo->locked;
+}
+
+static inline int gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, uint32_t stride)
+{
+	return surface->set_bo(surface, n, addr, stride);
 }
 
 #endif

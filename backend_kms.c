@@ -219,6 +219,35 @@ static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
 	return NULL;
 }
 
+static int _gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, uint32_t stride)
+{
+	struct gbm_kms_bo *bo;
+
+	if (n < 0 || n > 1)
+		return -1;
+
+	if (surface->bo[n])
+		free(surface->bo[n]);
+
+	if (addr == NULL && stride == 0)
+		return 0;
+
+	if (!(bo = calloc(1, sizeof(struct gbm_kms_bo))))
+		return -1;
+
+	bo->base.gbm = surface->base.gbm;
+	bo->base.width = surface->base.width;
+	bo->base.height = surface->base.height;
+	bo->base.format = surface->base.format;
+	bo->base.stride = stride;
+	bo->size = stride * surface->base.height;
+	bo->addr = addr;
+
+	surface->bo[n] = bo;
+
+	return 0;
+}
+
 static void gbm_kms_surface_destroy(struct gbm_surface *_surface);
 
 static struct gbm_surface *gbm_kms_surface_create(struct gbm_device *gbm,
@@ -240,17 +269,20 @@ static struct gbm_surface *gbm_kms_surface_create(struct gbm_device *gbm,
 	surface->base.format = format;
 	surface->base.flags = flags;
 
-	/* need to map BO */
-	flags |= GBM_BO_USE_WRITE;
-	surface->bo[0] = (struct gbm_kms_bo*)gbm_kms_bo_create(gbm, width, height, format, flags);
-	if (!surface->bo[0])
-		goto error;
-	surface->bo[1] = (struct gbm_kms_bo*)gbm_kms_bo_create(gbm, width, height, format, flags);
-	if (!surface->bo[1])
-		goto error;
+	if (!(flags & GBM_BO_CREATE_EMPTY)) {
+		/* need to map BO */
+		flags |= GBM_BO_USE_WRITE;
+		surface->bo[0] = (struct gbm_kms_bo*)gbm_kms_bo_create(gbm, width, height, format, flags);
+		if (!surface->bo[0])
+			goto error;
+		surface->bo[1] = (struct gbm_kms_bo*)gbm_kms_bo_create(gbm, width, height, format, flags);
+		if (!surface->bo[1])
+			goto error;
+	}
 
 	GBM_DEBUG("%s: %s: %d: created surface %dx%d\n", __FILE__, __func__, __LINE__, width, height);
 	surface->front = -1;
+	surface->set_bo = _gbm_kms_set_bo;
 
 	return (struct gbm_surface*)surface;
 
