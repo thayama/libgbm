@@ -68,6 +68,11 @@ static inline void gbm_kms_set_front(struct gbm_kms_surface *surface, int front)
 	surface->front = front;
 }
 
+static inline int gbm_kms_get_front(struct gbm_kms_surface *surface)
+{
+	return surface->front;
+}
+
 static inline int gbm_kms_is_bo_locked(struct gbm_kms_bo *bo)
 {
 	return bo->locked;
