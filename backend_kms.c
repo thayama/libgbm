@@ -89,7 +89,7 @@ static void gbm_kms_bo_destroy(struct gbm_bo *_bo)
 		return;
 
 	if (bo->addr)
-		kms_bo_unmap(bo->addr);
+		kms_bo_unmap(bo->bo);
 
 	if (bo->bo)
 		kms_bo_destroy(&bo->bo);
