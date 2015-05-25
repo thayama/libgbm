@@ -210,6 +210,17 @@ static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
 	bo->base.stride = buffer->stride;
 	bo->base.handle.u32 = buffer->handle;
 
+	if (buffer->num_planes > 0 && buffer->num_planes <= MAX_PLANES) {
+		int i;
+		bo->num_planes = buffer->num_planes;
+		for (i = 0; i < buffer->num_planes; i++)  {
+			bo->planes[i].handle = buffer->planes[i].handle;
+			bo->planes[i].stride = buffer->planes[i].stride;
+		}
+	} else {
+		bo->num_planes = 1;
+	}
+
 	return (struct gbm_bo*)bo;
 
  error:

@@ -38,6 +38,13 @@ struct gbm_kms_device {
 	struct kms_driver *kms;
 };
 
+#define MAX_PLANES	3
+
+struct gbm_kms_plane {
+	uint32_t handle;
+	uint32_t stride;
+};
+
 struct gbm_kms_bo {
 	struct gbm_bo base;
 	struct kms_bo *bo;
@@ -46,6 +53,10 @@ struct gbm_kms_bo {
 	int locked;
 
 	int size;
+
+	// for multi-planar support
+	int num_planes;
+	struct gbm_kms_plane planes[MAX_PLANES];
 };
 
 struct gbm_kms_surface {
@@ -81,6 +92,21 @@ static inline int gbm_kms_is_bo_locked(struct gbm_kms_bo *bo)
 static inline int gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, uint32_t stride)
 {
 	return surface->set_bo(surface, n, addr, stride);
+}
+
+static inline int gbm_kms_bo_get_num_planes(struct gbm_kms_bo *bo)
+{
+	return bo->num_planes;
+}
+
+static inline uint32_t gbm_kms_bo_get_plane_handle(struct gbm_kms_bo *bo, int i)
+{
+	return (i >= 0 && i < bo->num_planes) ? bo->planes[i].handle : 0;
+}
+
+static inline uint32_t gbm_kms_bo_get_plane_stride(struct gbm_kms_bo *bo, int i)
+{
+	return (i >= 0 && i < bo->num_planes) ? bo->planes[i].stride : 0;
 }
 
 #endif
