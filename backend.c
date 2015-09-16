@@ -40,7 +40,7 @@
  * directory..
  */
 static const char *backends[] = {
-      "libgbm_kms.so",
+      "libgbm_kms.so.1",
 };
 
 static const void *
