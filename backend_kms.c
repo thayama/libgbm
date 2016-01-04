@@ -74,7 +74,9 @@ static int gbm_kms_is_format_supported(struct gbm_device *gbm,
 	switch (format) {
 		// 32bpp
 	case GBM_FORMAT_ARGB8888:
+	case GBM_BO_FORMAT_ARGB8888:
 	case GBM_FORMAT_XRGB8888:
+	case GBM_BO_FORMAT_ARGB8888:
 		ret = 1;
 	}
 
@@ -120,7 +122,9 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	switch (format) {
 		// 32bpp
 	case GBM_FORMAT_ARGB8888:
+	case GBM_BO_FORMAT_ARGB8888:
 	case GBM_FORMAT_XRGB8888:
+	case GBM_BO_FORMAT_XRGB8888:
 		break;
 	default:
 		// unsupported...
