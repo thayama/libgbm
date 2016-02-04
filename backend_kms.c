@@ -76,7 +76,7 @@ static int gbm_kms_is_format_supported(struct gbm_device *gbm,
 	case GBM_FORMAT_ARGB8888:
 	case GBM_BO_FORMAT_ARGB8888:
 	case GBM_FORMAT_XRGB8888:
-	case GBM_BO_FORMAT_ARGB8888:
+	case GBM_BO_FORMAT_XRGB8888:
 		ret = 1;
 	}
 
