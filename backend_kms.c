@@ -181,26 +181,14 @@ static int gbm_kms_bo_write(struct gbm_bo *_bo, const void *buf, size_t count)
 	return 0;
 }
 
-static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
-					uint32_t type, void *_buffer,
-					uint32_t usage)
+static struct gbm_kms_bo* gbm_kms_import_wl_buffer(struct gbm_device *gbm,
+						   void *_buffer)
 {
-	struct gbm_kms_device *dev = (struct gbm_kms_device*)gbm;
-	struct gbm_kms_bo *bo;
 	struct wl_kms_buffer *buffer;
+	struct gbm_kms_bo *bo;
 
-	/*
-	 * We need to  import only wl_buffer for Weston, i.e. client's
-	 * rendering buffer.
-	 *
-	 * To make gbm_kms backend to be agnostic to none-DRM/KMS as much as
-	 * possible, wl_buffer that we receive must be DRM BO, nothing else.
-	 * We are already kind of wayland dependent which is enough.
-	 */
-	if (type != GBM_BO_IMPORT_WL_BUFFER)
-		return NULL;
-
-	if (!(buffer = wayland_kms_buffer_get((struct wl_resource*)_buffer)))
+	buffer = wayland_kms_buffer_get((struct wl_resource*)_buffer);
+	if (!buffer)
 		return NULL;
 
 	// XXX: BO handle is imported in wayland-kms.
@@ -208,6 +196,7 @@ static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
 		return NULL;
 
 	bo->base.gbm = gbm;
+
 	bo->base.width = buffer->width;
 	bo->base.height = buffer->height;
 	bo->base.format = buffer->format;
@@ -225,13 +214,64 @@ static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
 		bo->num_planes = 1;
 	}
 
+	return bo;
+}
+
+static struct gbm_kms_bo* gbm_kms_import_fd(struct gbm_device *gbm,
+					    void *_buffer)
+{
+	struct gbm_import_fd_data *fd_data = _buffer;
+	struct gbm_kms_device *dev = (struct gbm_kms_device*)gbm;
+	struct gbm_kms_bo *bo;
+	uint32_t handle;
+
+	if (drmPrimeFDToHandle(dev->base.base.fd, fd_data->fd, &handle)) {
+		GBM_DEBUG("%s: %s: drmPrimeFDToHandle() failed. %s\n",
+			  __FILE__, __func__, strerror(errno));
+		return NULL;
+	}
+
+	// XXX: BO handle is imported in wayland-kms.
+	if (!(bo = calloc(1, sizeof(struct gbm_kms_bo))))
+		return NULL;
+
+	bo->base.gbm = gbm;
+	bo->base.width = fd_data->width;
+	bo->base.height = fd_data->height;
+	bo->base.format = fd_data->format;
+	bo->base.stride = fd_data->stride;
+	bo->base.handle.u32 = handle;
+	bo->num_planes = 1;
+
+	return bo;
+}
+
+static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
+					uint32_t type, void *_buffer,
+					uint32_t usage)
+{
+	struct gbm_kms_bo *bo = NULL;
+
+	/*
+	 * We need to  import wl_buffer/gbm_import_fd_data for Weston,
+	 * i.e. client's rendering buffer.
+	 *
+	 * To make gbm_kms backend to be agnostic to none-DRM/KMS as much as
+	 * possible, wl_buffer that we receive must be DRM BO, nothing else.
+	 * We are already kind of wayland dependent which is enough.
+	 */
+	switch (type) {
+	case GBM_BO_IMPORT_WL_BUFFER:
+		bo = gbm_kms_import_wl_buffer(gbm, _buffer);
+		break;
+	case GBM_BO_IMPORT_FD:
+		bo = gbm_kms_import_fd(gbm, _buffer);
+		break;
+	default:
+		GBM_DEBUG("%s: invalid type = %d\n", __func__, type);
+	}
+
 	return (struct gbm_bo*)bo;
-
- error:
-	if (bo)
-		free(bo);
-
-	return NULL;
 }
 
 static int _gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, uint32_t stride)
