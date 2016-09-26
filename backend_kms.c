@@ -278,7 +278,7 @@ static int _gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, u
 {
 	struct gbm_kms_bo *bo;
 
-	if (n < 0 || n > 1)
+	if (n < 0 || n > surface->bo_count - 1)
 		return -1;
 
 	if (surface->bo[n])
@@ -337,6 +337,7 @@ static struct gbm_surface *gbm_kms_surface_create(struct gbm_device *gbm,
 
 	GBM_DEBUG("%s: %s: %d: created surface %dx%d\n", __FILE__, __func__, __LINE__, width, height);
 	surface->front = -1;
+	surface->bo_count = (flags & GBM_BO_TRIPLE_BUFFERS) ? 3 : 2;
 	surface->set_bo = _gbm_kms_set_bo;
 
 	return (struct gbm_surface*)surface;
@@ -356,6 +357,7 @@ static void gbm_kms_surface_destroy(struct gbm_surface *_surface)
 
 	gbm_kms_bo_destroy((struct gbm_bo*)surface->bo[0]);
 	gbm_kms_bo_destroy((struct gbm_bo*)surface->bo[1]);
+	gbm_kms_bo_destroy((struct gbm_bo*)surface->bo[2]);
 
 	free(surface);
 }

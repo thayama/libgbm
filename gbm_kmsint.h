@@ -61,12 +61,14 @@ struct gbm_kms_bo {
 
 struct gbm_kms_surface {
 	struct gbm_surface base;
-	struct gbm_kms_bo *bo[2];
+	struct gbm_kms_bo *bo[3];
 	int front;
+	int bo_count;
 	int (*set_bo)(struct gbm_kms_surface *, int, void *, uint32_t);
 };
 
-#define GBM_BO_CREATE_EMPTY (1 << 31)
+#define GBM_BO_CREATE_EMPTY	(1 << 31)
+#define GBM_BO_TRIPLE_BUFFERS	(1 << 30)
 
 /* Internal API */
 static inline struct gbm_kms_surface *gbm_kms_surface(struct gbm_surface *surface)
