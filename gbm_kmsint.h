@@ -29,6 +29,7 @@
 #define __gbm_kmsint_h__
 
 #include <libkms.h>
+#include <stdbool.h>
 
 #include "gbmint.h"
 #include "common_drm.h"
@@ -53,6 +54,7 @@ struct gbm_kms_bo {
 	int locked;
 
 	int size;
+	bool allocated;
 
 	// for multi-planar support
 	int num_planes;

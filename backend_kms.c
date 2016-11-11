@@ -90,14 +90,16 @@ static void gbm_kms_bo_destroy(struct gbm_bo *_bo)
 	if (!bo)
 		return;
 
-	if (bo->addr)
-		kms_bo_unmap(bo->bo);
+	if (bo->allocated) {
+		if (bo->addr)
+			kms_bo_unmap(bo->bo);
 
-	if (bo->fd)
-		close(bo->fd);
+		if (bo->fd)
+			close(bo->fd);
 
-	if (bo->bo)
-		kms_bo_destroy(&bo->bo);
+		if (bo->bo)
+			kms_bo_destroy(&bo->bo);
+	}
 
 	free(bo);
 
@@ -152,6 +154,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	kms_bo_get_prop(bo->bo, KMS_PITCH, &bo->base.stride);
 
 	bo->size = bo->base.stride * bo->base.height;
+	bo->allocated = true;
 
 	if (drmPrimeHandleToFD(dev->base.base.fd, bo->base.handle.u32, DRM_CLOEXEC, &bo->fd)) {
 		GBM_DEBUG("%s: %s: drmPrimeHandleToFD() failed. %s\n", __FILE__, __func__, strerror(errno));
@@ -300,6 +303,7 @@ static int _gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, u
 	bo->base.stride = stride;
 	bo->size = stride * surface->base.height;
 	bo->addr = addr;
+	bo->allocated = false;
 
 	surface->bo[n] = bo;
 
@@ -356,9 +360,6 @@ static void gbm_kms_surface_destroy(struct gbm_surface *_surface)
 
 	if (!surface)
 		return;
-
-	gbm_kms_bo_destroy((struct gbm_bo*)surface->bo[0]);
-	gbm_kms_bo_destroy((struct gbm_bo*)surface->bo[1]);
 
 	free(surface);
 }
