@@ -331,27 +331,11 @@ static struct gbm_surface *gbm_kms_surface_create(struct gbm_device *gbm,
 	surface->base.format = format;
 	surface->base.flags = flags;
 
-	if (!(flags & GBM_BO_CREATE_EMPTY)) {
-		/* need to map BO */
-		flags |= GBM_BO_USE_WRITE;
-		surface->bo[0] = (struct gbm_kms_bo*)gbm_kms_bo_create(gbm, width, height, format, flags);
-		if (!surface->bo[0])
-			goto error;
-		surface->bo[1] = (struct gbm_kms_bo*)gbm_kms_bo_create(gbm, width, height, format, flags);
-		if (!surface->bo[1])
-			goto error;
-	}
-
 	GBM_DEBUG("%s: %s: %d: created surface %dx%d\n", __FILE__, __func__, __LINE__, width, height);
 	surface->front = -1;
 	surface->set_bo = _gbm_kms_set_bo;
 
 	return (struct gbm_surface*)surface;
-
-error:
-	GBM_DEBUG("%s: %s: %d: surface creation failed.\n", __FILE__, __func__, __LINE__);
-	gbm_kms_surface_destroy((struct gbm_surface*)surface);
-	return NULL;
 }
 
 static void gbm_kms_surface_destroy(struct gbm_surface *_surface)

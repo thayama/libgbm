@@ -68,8 +68,6 @@ struct gbm_kms_surface {
 	int (*set_bo)(struct gbm_kms_surface *, int, void *, uint32_t);
 };
 
-#define GBM_BO_CREATE_EMPTY (1 << 31)
-
 /* Internal API */
 static inline struct gbm_kms_surface *gbm_kms_surface(struct gbm_surface *surface)
 {
