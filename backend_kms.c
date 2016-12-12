@@ -280,7 +280,7 @@ static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
 	return (struct gbm_bo*)bo;
 }
 
-static int _gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, uint32_t stride)
+static int _gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, int fd, uint32_t stride)
 {
 	struct gbm_kms_bo *bo;
 
@@ -303,6 +303,7 @@ static int _gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, u
 	bo->base.stride = stride;
 	bo->size = stride * surface->base.height;
 	bo->addr = addr;
+	bo->fd = fd;
 	bo->allocated = false;
 
 	surface->bo[n] = bo;

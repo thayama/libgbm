@@ -65,7 +65,7 @@ struct gbm_kms_surface {
 	struct gbm_surface base;
 	struct gbm_kms_bo *bo[2];
 	int front;
-	int (*set_bo)(struct gbm_kms_surface *, int, void *, uint32_t);
+	int (*set_bo)(struct gbm_kms_surface *, int, void *, int, uint32_t);
 };
 
 /* Internal API */
@@ -89,9 +89,9 @@ static inline int gbm_kms_is_bo_locked(struct gbm_kms_bo *bo)
 	return bo->locked;
 }
 
-static inline int gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, uint32_t stride)
+static inline int gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, int fd, uint32_t stride)
 {
-	return surface->set_bo(surface, n, addr, stride);
+	return surface->set_bo(surface, n, addr, fd, stride);
 }
 
 static inline int gbm_kms_bo_get_num_planes(struct gbm_kms_bo *bo)
