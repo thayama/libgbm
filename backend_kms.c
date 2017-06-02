@@ -319,7 +319,6 @@ static struct gbm_surface *gbm_kms_surface_create(struct gbm_device *gbm,
 						  uint32_t format,
 						  uint32_t flags)
 {
-	struct gbm_kms_device *dev = (struct gbm_kms_device*)gbm;
 	struct gbm_kms_surface *surface;
 	GBM_DEBUG("%s: %s: %d\n", __FILE__, __func__, __LINE__);
 
@@ -404,7 +403,6 @@ struct gbm_device kms_gbm_device = {
 static struct gbm_device *kms_device_create(int fd)
 {
 	struct gbm_kms_device *dev;
-	int ret;
 
 	GBM_DEBUG("%s: %d\n", __func__, __LINE__);
 
