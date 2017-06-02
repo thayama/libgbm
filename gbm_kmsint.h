@@ -53,7 +53,7 @@ struct gbm_kms_bo {
 	int fd;			// FD for export
 	int locked;
 
-	int size;
+	uint32_t size;
 	bool allocated;
 
 	// for multi-planar support

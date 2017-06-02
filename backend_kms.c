@@ -70,17 +70,16 @@ static void gbm_kms_destroy(struct gbm_device *gbm)
 static int gbm_kms_is_format_supported(struct gbm_device *gbm,
 				       uint32_t format, uint32_t usage)
 {
-	int ret = 0;
 	switch (format) {
 		// 32bpp
 	case GBM_FORMAT_ARGB8888:
 	case GBM_BO_FORMAT_ARGB8888:
 	case GBM_FORMAT_XRGB8888:
 	case GBM_BO_FORMAT_XRGB8888:
-		ret = 1;
+		return 1;
+	default:
+		return 0;
 	}
-
-	return ret;
 }
 
 static void gbm_kms_bo_destroy(struct gbm_bo *_bo)
@@ -136,7 +135,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 		goto error;
 	}
 
-	if (usage & GBM_BO_USE_CURSOR_64X64)
+	if (usage & (uint32_t)GBM_BO_USE_CURSOR_64X64)
 		attr[1] = KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8;
 	attr[3] = width;
 	attr[5] = height;
@@ -162,7 +161,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	}
 
 	// Map to the user space for bo_write
-	if (usage & GBM_BO_USE_WRITE) {
+	if (usage & (uint32_t)GBM_BO_USE_WRITE) {
 		if (kms_bo_map(bo->bo, &bo->addr))
 			goto error;
 	}
@@ -275,12 +274,13 @@ static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
 		break;
 	default:
 		GBM_DEBUG("%s: invalid type = %d\n", __func__, type);
+		break;
 	}
 
 	return (struct gbm_bo*)bo;
 }
 
-static int _gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, int fd, uint32_t stride)
+static int gbm_kms_surface_set_bo(struct gbm_kms_surface *surface, int n, void *addr, int fd, uint32_t stride)
 {
 	struct gbm_kms_bo *bo;
 
@@ -334,7 +334,7 @@ static struct gbm_surface *gbm_kms_surface_create(struct gbm_device *gbm,
 
 	GBM_DEBUG("%s: %s: %d: created surface %dx%d\n", __FILE__, __func__, __LINE__, width, height);
 	surface->front = -1;
-	surface->set_bo = _gbm_kms_set_bo;
+	surface->set_bo = gbm_kms_surface_set_bo;
 
 	return (struct gbm_surface*)surface;
 }
