@@ -137,7 +137,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 		goto error;
 	}
 
-	if (usage & (uint32_t)GBM_BO_USE_CURSOR_64X64)
+	if (usage & (uint32_t)GBM_BO_USE_CURSOR)
 		attr[1] = KMS_BO_TYPE_CURSOR_64X64_A8R8G8B8;
 	attr[3] = width;
 	attr[5] = height;
