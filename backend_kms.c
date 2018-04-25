@@ -55,6 +55,24 @@
 #endif
 
 /*
+ * The two GBM_BO_FORMAT_[XA]RGB8888 formats alias the GBM_FORMAT_*
+ * formats of the same name. We want to accept them whenever someone
+ * has a GBM format, but never return them to the user.
+ */
+static int
+gbm_format_canonicalize(uint32_t gbm_format)
+{
+	switch (gbm_format) {
+	case GBM_BO_FORMAT_XRGB8888:
+		return GBM_FORMAT_XRGB8888;
+	case GBM_BO_FORMAT_ARGB8888:
+		return GBM_FORMAT_ARGB8888;
+	default:
+		return gbm_format;
+	}
+}
+
+/*
  * Destroy gbm backend
  */
 static void gbm_kms_destroy(struct gbm_device *gbm)
@@ -70,12 +88,11 @@ static void gbm_kms_destroy(struct gbm_device *gbm)
 static int gbm_kms_is_format_supported(struct gbm_device *gbm,
 				       uint32_t format, uint32_t usage)
 {
-	switch (format) {
+	int fourcc = gbm_format_canonicalize(format);
+	switch (fourcc) {
 		// 32bpp
 	case GBM_FORMAT_ARGB8888:
-	case GBM_BO_FORMAT_ARGB8888:
 	case GBM_FORMAT_XRGB8888:
-	case GBM_BO_FORMAT_XRGB8888:
 		return 1;
 	default:
 		return 0;
@@ -111,6 +128,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 {
 	struct gbm_kms_device *dev = (struct gbm_kms_device*)gbm;
 	struct gbm_kms_bo *bo;
+	int fourcc;
 	unsigned attr[] = {
 		KMS_BO_TYPE, KMS_BO_TYPE_SCANOUT_X8R8G8B8,
 		KMS_WIDTH, 0,
@@ -124,12 +142,12 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	if (!(bo = calloc(1, sizeof(struct gbm_kms_bo))))
 		return NULL;
 
-	switch (format) {
+	fourcc = gbm_format_canonicalize(format);
+
+	switch (fourcc) {
 		// 32bpp
 	case GBM_FORMAT_ARGB8888:
-	case GBM_BO_FORMAT_ARGB8888:
 	case GBM_FORMAT_XRGB8888:
-	case GBM_BO_FORMAT_XRGB8888:
 		break;
 	default:
 		// unsupported...
@@ -152,7 +170,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	bo->base.gbm = gbm;
 	bo->base.width = width;
 	bo->base.height = height;
-	bo->base.format = format;
+	bo->base.format = fourcc;
 
 	kms_bo_get_prop(bo->bo, KMS_HANDLE, &bo->base.handle.u32);
 	kms_bo_get_prop(bo->bo, KMS_PITCH, &bo->base.stride);
@@ -255,7 +273,7 @@ static struct gbm_kms_bo* gbm_kms_import_fd(struct gbm_device *gbm,
 	bo->base.gbm = gbm;
 	bo->base.width = fd_data->width;
 	bo->base.height = fd_data->height;
-	bo->base.format = fd_data->format;
+	bo->base.format = gbm_format_canonicalize(fd_data->format);
 	bo->base.stride = fd_data->stride;
 	bo->base.handle.u32 = handle;
 	bo->num_planes = 1;
