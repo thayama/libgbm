@@ -42,8 +42,4 @@ struct gbm_drm_device {
    char *driver_name;
 };
 
-struct gbm_drm_bo {
-   struct gbm_bo base;
-};
-
 #endif

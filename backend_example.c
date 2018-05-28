@@ -50,7 +50,7 @@ struct gbm_example_device {
 };
 
 struct gbm_example_bo {
-   struct gbm_drm_bo base;
+   struct gbm_bo base;
    /* add whatever you need here */
 };
 
