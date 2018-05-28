@@ -117,6 +117,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 		KMS_HEIGHT, 0,
 		KMS_TERMINATE_PROP_LIST
 	};
+	int ret;
 
 	GBM_DEBUG("%s: %s: %d\n", __FILE__, __func__, __LINE__);
 
@@ -132,6 +133,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 		break;
 	default:
 		// unsupported...
+		errno = EINVAL;
 		goto error;
 	}
 
@@ -141,8 +143,11 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	attr[5] = height;
 
 	// Create BO
-	if (kms_bo_create(dev->kms, attr, &bo->bo))
+	ret = kms_bo_create(dev->kms, attr, &bo->bo);
+	if (ret) {
+		errno = -ret;
 		goto error;
+	}
 
 	bo->base.gbm = gbm;
 	bo->base.width = width;
@@ -162,8 +167,11 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 
 	// Map to the user space for bo_write
 	if (usage & (uint32_t)GBM_BO_USE_WRITE) {
-		if (kms_bo_map(bo->bo, &bo->addr))
+		ret = kms_bo_map(bo->bo, &bo->addr);
+		if (ret) {
+			errno = -ret;
 			goto error;
+		}
 	}
 
 	return (struct gbm_bo*)bo;
@@ -178,8 +186,10 @@ static int gbm_kms_bo_write(struct gbm_bo *_bo, const void *buf, size_t count)
 {
 	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
 
-	if (!bo->addr)
+	if (!bo->addr) {
+		errno = EINVAL;
 		return -1;
+	}
 
 	memcpy(bo->addr, buf, count);
 
@@ -193,8 +203,10 @@ static struct gbm_kms_bo* gbm_kms_import_wl_buffer(struct gbm_device *gbm,
 	struct gbm_kms_bo *bo;
 
 	buffer = wayland_kms_buffer_get((struct wl_resource*)_buffer);
-	if (!buffer)
+	if (!buffer) {
+		errno = EINVAL;
 		return NULL;
+	}
 
 	// XXX: BO handle is imported in wayland-kms.
 	if (!(bo = calloc(1, sizeof(struct gbm_kms_bo))))
@@ -273,6 +285,7 @@ static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
 		bo = gbm_kms_import_fd(gbm, _buffer);
 		break;
 	default:
+		errno = EINVAL;
 		GBM_DEBUG("%s: invalid type = %d\n", __func__, type);
 		break;
 	}
