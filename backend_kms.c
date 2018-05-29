@@ -53,6 +53,10 @@
 #  define GBM_DEBUG(s, x...)	{ }
 #endif
 
+#ifndef DRM_FORMAT_MOD_INVALID
+#define DRM_FORMAT_MOD_INVALID	((1ULL<<56) - 1)
+#endif
+
 /*
  * The two GBM_BO_FORMAT_[XA]RGB8888 formats alias the GBM_FORMAT_*
  * formats of the same name. We want to accept them whenever someone
@@ -98,6 +102,38 @@ static int gbm_kms_is_format_supported(struct gbm_device *gbm,
 	}
 }
 
+static int gbm_kms_get_format_modifier_plane_count(struct gbm_device *gbm,
+						   uint32_t format,
+						   uint64_t modifier)
+{
+	/* unsupported modifier */
+	return -1;
+}
+
+static int gbm_kms_bo_map_ref(struct gbm_kms_bo *bo)
+{
+	if (bo->map_ref == 0) {
+		int ret = kms_bo_map(bo->bo, &bo->addr);
+		if (ret < 0)
+			return ret;
+	}
+
+	bo->map_ref++;
+	return 0;
+}
+
+static void gbm_kms_bo_map_unref(struct gbm_kms_bo *bo)
+{
+	if (!bo->addr)
+		return;
+
+	bo->map_ref--;
+	if (bo->map_ref == 0) {
+		kms_bo_unmap(bo->bo);
+		bo->addr = NULL;
+	}
+}
+
 static void gbm_kms_bo_destroy(struct gbm_bo *_bo)
 {
 	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
@@ -123,7 +159,9 @@ static void gbm_kms_bo_destroy(struct gbm_bo *_bo)
 
 static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 					uint32_t width, uint32_t height,
-					uint32_t format, uint32_t usage)
+					uint32_t format, uint32_t usage,
+					const uint64_t *modifiers,
+					const unsigned int count)
 {
 	struct gbm_kms_device *dev = (struct gbm_kms_device*)gbm;
 	struct gbm_kms_bo *bo;
@@ -175,6 +213,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	kms_bo_get_prop(bo->bo, KMS_PITCH, &bo->base.stride);
 
 	bo->size = bo->base.stride * bo->base.height;
+	bo->num_planes = 1;
 	bo->allocated = true;
 
 	if (drmPrimeHandleToFD(dev->base.fd, bo->base.handle.u32, DRM_CLOEXEC, &bo->fd)) {
@@ -184,7 +223,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 
 	// Map to the user space for bo_write
 	if (usage & (uint32_t)GBM_BO_USE_WRITE) {
-		ret = kms_bo_map(bo->bo, &bo->addr);
+		ret = gbm_kms_bo_map_ref(bo);
 		if (ret) {
 			errno = -ret;
 			goto error;
@@ -199,11 +238,50 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	return NULL;
 }
 
+static void *gbm_kms_bo_map(struct gbm_bo *_bo, uint32_t x, uint32_t y,
+			    uint32_t width, uint32_t height, uint32_t flags,
+			    uint32_t *stride, void **map_data)
+{
+	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
+	int ret;
+
+	if (x != 0 || y != 0 ||
+	    width != bo->base.width || height != bo->base.height) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	ret = gbm_kms_bo_map_ref(bo);
+	if (ret < 0) {
+		errno = -ret;
+		return NULL;
+	}
+
+	*map_data = bo->addr;
+	*stride = bo->base.stride;
+	return *map_data;
+}
+
+static void gbm_kms_bo_unmap(struct gbm_bo *_bo, void *map_data)
+{
+	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
+
+	if (!map_data || map_data != bo->addr)
+		return;
+
+	gbm_kms_bo_map_unref(bo);
+}
+
 static int gbm_kms_bo_write(struct gbm_bo *_bo, const void *buf, size_t count)
 {
 	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
 
 	if (!bo->addr) {
+		errno = EFAULT;
+		return -1;
+	}
+
+	if (count > bo->size) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -211,6 +289,67 @@ static int gbm_kms_bo_write(struct gbm_bo *_bo, const void *buf, size_t count)
 	memcpy(bo->addr, buf, count);
 
 	return 0;
+}
+
+static int gbm_kms_bo_get_fd(struct gbm_bo *_bo)
+{
+	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
+	struct gbm_kms_device *dev = (struct gbm_kms_device*)bo->base.gbm;
+	int ret, fd;
+
+	ret = drmPrimeHandleToFD(dev->base.fd, bo->base.handle.u32,
+				 DRM_CLOEXEC, &fd);
+	if (ret < 0)
+		return ret;
+
+	return fd;
+}
+
+static int gbm_kms_bo_get_planes(struct gbm_bo *_bo)
+{
+	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
+
+	return bo->num_planes;
+}
+
+static uint32_t gbm_kms_bo_get_stride(struct gbm_bo *_bo, int plane)
+{
+	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
+
+	if (plane < 0 || bo->num_planes <= plane) {
+		errno = EINVAL;
+		return 0;
+	}
+
+	return (bo->num_planes == 1) ?
+		bo->base.stride : bo->planes[plane].stride;
+}
+
+static uint32_t gbm_kms_bo_get_offset(struct gbm_bo *_bo, int plane)
+{
+	return 0;
+}
+
+static union gbm_bo_handle gbm_kms_bo_get_handle(struct gbm_bo *_bo, int plane)
+{
+	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
+	union gbm_bo_handle ret;
+
+	if (plane < 0 || bo->num_planes <= plane) {
+		errno = EINVAL;
+		ret.s32 = -1;
+		return ret;
+	}
+
+	ret.u32 = (bo->num_planes == 1) ?
+		bo->base.handle.u32 : bo->planes[plane].handle;
+	return ret;
+}
+
+static uint64_t gbm_kms_bo_get_modifier(struct gbm_bo *_bo)
+{
+	/* unsupported modifier */
+	return DRM_FORMAT_MOD_INVALID;
 }
 
 static struct gbm_kms_bo* gbm_kms_import_wl_buffer(struct gbm_device *gbm,
@@ -280,6 +419,55 @@ static struct gbm_kms_bo* gbm_kms_import_fd(struct gbm_device *gbm,
 	return bo;
 }
 
+static struct gbm_kms_bo *gbm_kms_import_fd_modifier(struct gbm_device *gbm,
+						     void *_buffer)
+{
+	struct gbm_import_fd_modifier_data *fd_data = _buffer;
+	struct gbm_kms_device *dev = (struct gbm_kms_device*)gbm;
+	struct gbm_kms_bo *bo;
+	uint32_t handle[MAX_PLANES];
+	int i, num_planes;
+
+	/* unsupported modifier */
+	if (fd_data->modifier != DRM_FORMAT_MOD_INVALID) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	if (fd_data->num_fds <= 0 || MAX_PLANES < fd_data->num_fds) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	for (i = 0; i < fd_data->num_fds; i++) {
+		if (drmPrimeFDToHandle(dev->base.fd, fd_data->fds[i],
+				       &handle[i])) {
+			GBM_DEBUG("%s: %s: drmPrimeFDToHandle() failed. %s\n",
+				  __FILE__, __func__, strerror(errno));
+			return NULL;
+		}
+	}
+
+	if (!(bo = calloc(1, sizeof(struct gbm_kms_bo))))
+		return NULL;
+
+	bo->base.gbm = gbm;
+
+	bo->base.width = fd_data->width;
+	bo->base.height = fd_data->height;
+	bo->base.format = gbm_format_canonicalize(fd_data->format);
+	bo->base.stride = fd_data->strides[0];
+	bo->base.handle.u32 = handle[0];
+
+	bo->num_planes = fd_data->num_fds;
+	for (i = 0; i < fd_data->num_fds; i++)  {
+		bo->planes[i].handle = handle[i];
+		bo->planes[i].stride = fd_data->strides[i];
+	}
+
+	return bo;
+}
+
 static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
 					uint32_t type, void *_buffer,
 					uint32_t usage)
@@ -300,6 +488,9 @@ static struct gbm_bo *gbm_kms_bo_import(struct gbm_device *gbm,
 		break;
 	case GBM_BO_IMPORT_FD:
 		bo = gbm_kms_import_fd(gbm, _buffer);
+		break;
+	case GBM_BO_IMPORT_FD_MODIFIER:
+		bo = gbm_kms_import_fd_modifier(gbm, _buffer);
 		break;
 	default:
 		errno = EINVAL;
@@ -334,6 +525,7 @@ static int gbm_kms_surface_set_bo(struct gbm_kms_surface *surface, int n, void *
 	bo->size = stride * surface->base.height;
 	bo->addr = addr;
 	bo->fd = fd;
+	bo->num_planes = 1;
 	bo->allocated = false;
 
 	surface->bo[n] = bo;
@@ -347,7 +539,9 @@ static struct gbm_surface *gbm_kms_surface_create(struct gbm_device *gbm,
 						  uint32_t width,
 						  uint32_t height,
 						  uint32_t format,
-						  uint32_t flags)
+						  uint32_t flags,
+						  const uint64_t *modifiers,
+						  const unsigned count)
 {
 	struct gbm_kms_surface *surface;
 	GBM_DEBUG("%s: %s: %d\n", __FILE__, __func__, __LINE__);
@@ -417,10 +611,19 @@ struct gbm_device kms_gbm_device = {
 
 	.destroy = gbm_kms_destroy,
 	.is_format_supported = gbm_kms_is_format_supported,
+	.get_format_modifier_plane_count = gbm_kms_get_format_modifier_plane_count,
 
 	.bo_create = gbm_kms_bo_create,
 	.bo_import = gbm_kms_bo_import,
+	.bo_map = gbm_kms_bo_map,
+	.bo_unmap = gbm_kms_bo_unmap,
 	.bo_write = gbm_kms_bo_write,
+	.bo_get_fd = gbm_kms_bo_get_fd,
+	.bo_get_planes = gbm_kms_bo_get_planes,
+	.bo_get_handle = gbm_kms_bo_get_handle,
+	.bo_get_stride = gbm_kms_bo_get_stride,
+	.bo_get_offset = gbm_kms_bo_get_offset,
+	.bo_get_modifier = gbm_kms_bo_get_modifier,
 	.bo_destroy = gbm_kms_bo_destroy,
 
 	.surface_create = gbm_kms_surface_create,
