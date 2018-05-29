@@ -45,7 +45,6 @@
 #include <wayland-kms.h>
 
 #include "gbmint.h"
-#include "common_drm.h"
 #include "gbm_kmsint.h"
 
 #if defined(DEBUG)
@@ -178,7 +177,7 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	bo->size = bo->base.stride * bo->base.height;
 	bo->allocated = true;
 
-	if (drmPrimeHandleToFD(dev->base.base.fd, bo->base.handle.u32, DRM_CLOEXEC, &bo->fd)) {
+	if (drmPrimeHandleToFD(dev->base.fd, bo->base.handle.u32, DRM_CLOEXEC, &bo->fd)) {
 		GBM_DEBUG("%s: %s: drmPrimeHandleToFD() failed. %s\n", __FILE__, __func__, strerror(errno));
 		goto error;
 	}
@@ -260,7 +259,7 @@ static struct gbm_kms_bo* gbm_kms_import_fd(struct gbm_device *gbm,
 	struct gbm_kms_bo *bo;
 	uint32_t handle;
 
-	if (drmPrimeFDToHandle(dev->base.base.fd, fd_data->fd, &handle)) {
+	if (drmPrimeFDToHandle(dev->base.fd, fd_data->fd, &handle)) {
 		GBM_DEBUG("%s: %s: drmPrimeFDToHandle() failed. %s\n",
 			  __FILE__, __func__, strerror(errno));
 		return NULL;
@@ -440,17 +439,15 @@ static struct gbm_device *kms_device_create(int fd)
 	if (!(dev = calloc(1, sizeof(struct gbm_kms_device))))
 		return NULL;
 
-	dev->base.type = GBM_DRM_DRIVER_TYPE_CUSTOM;
-
-	dev->base.base = kms_gbm_device;
-	dev->base.base.fd = fd;
+	dev->base = kms_gbm_device;
+	dev->base.fd = fd;
 
 	if (kms_create(fd, &dev->kms)) {
 		free(dev);
 		return NULL;
 	}
 
-	return &dev->base.base;
+	return &dev->base;
 }
 
 /* backend loader looks for symbol "gbm_backend" */

@@ -32,10 +32,9 @@
 #include <stdbool.h>
 
 #include "gbmint.h"
-#include "common_drm.h"
 
 struct gbm_kms_device {
-	struct gbm_drm_device base;
+	struct gbm_device base;
 	struct kms_driver *kms;
 };
 
