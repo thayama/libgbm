@@ -37,7 +37,6 @@ extdir = $(includedir)/gbm
 ext_HEADERS =		\
 	gbm.h		\
 	gbmint.h	\
-	common_drm.h	\
 	common.h	\
 	gbm_kmsint.h
 

@@ -42,15 +42,14 @@
 #include <dlfcn.h>
 
 #include "gbmint.h"
-#include "common_drm.h"
 
 struct gbm_example_device {
-   struct gbm_drm_device base;
+   struct gbm_device base;
    /* add whatever you need here */
 };
 
 struct gbm_example_bo {
-   struct gbm_drm_bo base;
+   struct gbm_bo base;
    /* add whatever you need here */
 };
 
@@ -59,7 +58,7 @@ static int
 gles_init(struct gbm_example_device *dev)
 {
    /* this should open/initialize the GLES stack.. for a DRM driver
-    * at least, dev->base.base.fd will have the already opened device
+    * at least, dev->base.fd will have the already opened device
     */
    return 0;
 }
@@ -109,15 +108,14 @@ example_device_create(int fd)
 
    dev = calloc(1, sizeof *dev);
 
-   dev->base.base.fd = fd;
-   dev->base.base.bo_create = gbm_example_bo_create;
-   dev->base.base.bo_create_from_egl_image = gbm_example_bo_create_from_egl_image;
-   dev->base.base.is_format_supported = gbm_example_is_format_supported;
-   dev->base.base.bo_destroy = gbm_example_bo_destroy;
-   dev->base.base.destroy = gbm_example_destroy;
+   dev->base.fd = fd;
+   dev->base.bo_create = gbm_example_bo_create;
+   dev->base.bo_create_from_egl_image = gbm_example_bo_create_from_egl_image;
+   dev->base.is_format_supported = gbm_example_is_format_supported;
+   dev->base.bo_destroy = gbm_example_bo_destroy;
+   dev->base.destroy = gbm_example_destroy;
 
-   dev->base.type = GBM_DRM_DRIVER_TYPE_CUSTOM;
-   dev->base.base.name = "example";
+   dev->base.name = "example";
 
    ret = gles_init(dev);
    if (ret) {
@@ -125,7 +123,7 @@ example_device_create(int fd)
       return NULL;
    }
 
-   return &dev->base.base;
+   return &dev->base;
 }
 
 /* backend loader looks for symbol "gbm_backend" */

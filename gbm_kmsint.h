@@ -32,10 +32,9 @@
 #include <stdbool.h>
 
 #include "gbmint.h"
-#include "common_drm.h"
 
 struct gbm_kms_device {
-	struct gbm_drm_device base;
+	struct gbm_device base;
 	struct kms_driver *kms;
 };
 
@@ -50,6 +49,7 @@ struct gbm_kms_bo {
 	struct gbm_bo base;
 	struct kms_bo *bo;
 	void *addr;
+	int map_ref;
 	int fd;			// FD for export
 	int locked;
 
@@ -92,21 +92,6 @@ static inline int gbm_kms_is_bo_locked(struct gbm_kms_bo *bo)
 static inline int gbm_kms_set_bo(struct gbm_kms_surface *surface, int n, void *addr, int fd, uint32_t stride)
 {
 	return surface->set_bo(surface, n, addr, fd, stride);
-}
-
-static inline int gbm_kms_bo_get_num_planes(struct gbm_kms_bo *bo)
-{
-	return bo->num_planes;
-}
-
-static inline uint32_t gbm_kms_bo_get_plane_handle(struct gbm_kms_bo *bo, int i)
-{
-	return (i >= 0 && i < bo->num_planes) ? bo->planes[i].handle : 0;
-}
-
-static inline uint32_t gbm_kms_bo_get_plane_stride(struct gbm_kms_bo *bo, int i)
-{
-	return (i >= 0 && i < bo->num_planes) ? bo->planes[i].stride : 0;
 }
 
 #endif
