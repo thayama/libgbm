@@ -216,7 +216,8 @@ static struct gbm_bo *gbm_kms_bo_create(struct gbm_device *gbm,
 	bo->num_planes = 1;
 	bo->allocated = true;
 
-	if (drmPrimeHandleToFD(dev->base.fd, bo->base.handle.u32, DRM_CLOEXEC, &bo->fd)) {
+	if (drmPrimeHandleToFD(dev->base.fd, bo->base.handle.u32,
+			       DRM_CLOEXEC | DRM_RDWR, &bo->fd)) {
 		GBM_DEBUG("%s: %s: drmPrimeHandleToFD() failed. %s\n", __FILE__, __func__, strerror(errno));
 		goto error;
 	}
@@ -298,7 +299,7 @@ static int gbm_kms_bo_get_fd(struct gbm_bo *_bo)
 	int ret, fd;
 
 	ret = drmPrimeHandleToFD(dev->base.fd, bo->base.handle.u32,
-				 DRM_CLOEXEC, &fd);
+				 DRM_CLOEXEC | DRM_RDWR, &fd);
 	if (ret < 0)
 		return ret;
 
