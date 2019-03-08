@@ -41,6 +41,7 @@
 #include <xf86drm.h>
 #include <libkms.h>
 #include <errno.h>
+#include <drm_fourcc.h>
 
 #include <wayland-kms.h>
 
@@ -84,12 +85,12 @@ static void gbm_kms_destroy(struct gbm_device *gbm)
 }
 
 /*
- * Check if the given format is supported
+ * Get number of plans of supported format.
+ * Returns -1 and set EINVAL to errno, if the format is not supported.
  *
  * Weston requires GBM_FORMAT_XRGB8888 only for now.
  */
-static int gbm_kms_is_format_supported(struct gbm_device *gbm,
-				       uint32_t format, uint32_t usage)
+static int gbm_kms_get_format_plane_count(uint32_t format)
 {
 	int fourcc = gbm_format_canonicalize(format);
 	switch (fourcc) {
@@ -98,16 +99,31 @@ static int gbm_kms_is_format_supported(struct gbm_device *gbm,
 	case GBM_FORMAT_XRGB8888:
 		return 1;
 	default:
-		return 0;
+		/* invalid argument */
+		errno = EINVAL;
+		return -1;
 	}
+}
+
+/*
+ * Check if the given format is supported
+ */
+static int gbm_kms_is_format_supported(struct gbm_device *gbm,
+				       uint32_t format, uint32_t usage)
+{
+    return (gbm_kms_get_format_plane_count(format) != -1);
 }
 
 static int gbm_kms_get_format_modifier_plane_count(struct gbm_device *gbm,
 						   uint32_t format,
 						   uint64_t modifier)
 {
-	/* unsupported modifier */
-	return -1;
+	if (modifier != DRM_FORMAT_MOD_LINEAR) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	return gbm_kms_get_format_plane_count(format);
 }
 
 static int gbm_kms_bo_map_ref(struct gbm_kms_bo *bo)
@@ -349,8 +365,7 @@ static union gbm_bo_handle gbm_kms_bo_get_handle(struct gbm_bo *_bo, int plane)
 
 static uint64_t gbm_kms_bo_get_modifier(struct gbm_bo *_bo)
 {
-	/* unsupported modifier */
-	return DRM_FORMAT_MOD_INVALID;
+	return DRM_FORMAT_MOD_LINEAR;
 }
 
 static struct gbm_kms_bo* gbm_kms_import_wl_buffer(struct gbm_device *gbm,
@@ -429,8 +444,8 @@ static struct gbm_kms_bo *gbm_kms_import_fd_modifier(struct gbm_device *gbm,
 	uint32_t handle[MAX_PLANES];
 	int i, num_planes;
 
-	/* unsupported modifier */
-	if (fd_data->modifier != DRM_FORMAT_MOD_INVALID) {
+	if (fd_data->modifier != DRM_FORMAT_MOD_LINEAR &&
+	    fd_data->modifier != DRM_FORMAT_MOD_INVALID) {
 		errno = EINVAL;
 		return NULL;
 	}
