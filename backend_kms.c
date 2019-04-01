@@ -150,6 +150,18 @@ static void gbm_kms_bo_map_unref(struct gbm_kms_bo *bo)
 	}
 }
 
+static void gbm_kms_bo_close_handle(int fd, uint32_t handle)
+{
+	struct drm_gem_close gem_close = { .handle = handle };
+
+	if (!handle)
+		return;
+
+	if (drmIoctl(fd, DRM_IOCTL_GEM_CLOSE, &gem_close))
+		GBM_DEBUG("%s: %s: DRM_IOCTL_GEM_CLOSE failed. (%s)\n",
+			  __FILE__, __func__, strerror(errno));
+}
+
 static void gbm_kms_bo_destroy(struct gbm_bo *_bo)
 {
 	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
@@ -166,6 +178,14 @@ static void gbm_kms_bo_destroy(struct gbm_bo *_bo)
 
 		if (bo->bo)
 			kms_bo_destroy(&bo->bo);
+	} else if (bo->num_planes == 1) {
+		gbm_kms_bo_close_handle(bo->base.gbm->fd, bo->base.handle.u32);
+	} else {
+		int i;
+		for (i = 0; i < bo->num_planes; i++) {
+			gbm_kms_bo_close_handle(bo->base.gbm->fd,
+						bo->planes[i].handle);
+		}
 	}
 
 	free(bo);
