@@ -133,4 +133,20 @@ struct gbm_backend {
    struct gbm_device *(*create_device)(int fd);
 };
 
+/* The two GBM_BO_FORMAT_[XA]RGB8888 formats alias the GBM_FORMAT_*
+ * formats of the same name. We want to accept them whenever someone
+ * has a GBM format, but never return them to the user. */
+static inline uint32_t
+gbm_format_canonicalize(uint32_t gbm_format)
+{
+   switch (gbm_format) {
+   case GBM_BO_FORMAT_XRGB8888:
+      return GBM_FORMAT_XRGB8888;
+   case GBM_BO_FORMAT_ARGB8888:
+      return GBM_FORMAT_ARGB8888;
+   default:
+      return gbm_format;
+   }
+}
+
 #endif
