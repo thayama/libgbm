@@ -22,7 +22,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libgbm], [17.3.6],
+AC_INIT([libgbm], [19.0.1],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa], [libgbm])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
