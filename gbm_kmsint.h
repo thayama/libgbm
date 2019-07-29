@@ -55,6 +55,7 @@ struct gbm_kms_bo {
 
 	uint32_t size;
 	bool allocated;
+	bool allocated_handle;
 
 	// for multi-planar support
 	int num_planes;

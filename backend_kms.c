@@ -160,13 +160,16 @@ static void gbm_kms_bo_destroy(struct gbm_bo *_bo)
 
 		if (bo->bo)
 			kms_bo_destroy(&bo->bo);
-	} else if (bo->num_planes == 1) {
-		gbm_kms_bo_close_handle(bo->base.gbm->fd, bo->base.handle.u32);
-	} else {
-		int i;
-		for (i = 0; i < bo->num_planes; i++) {
+	} else if (bo->allocated_handle) {
+		if (bo->num_planes == 1) {
 			gbm_kms_bo_close_handle(bo->base.gbm->fd,
-						bo->planes[i].handle);
+						bo->base.handle.u32);
+		} else {
+			int i;
+			for (i = 0; i < bo->num_planes; i++) {
+				gbm_kms_bo_close_handle(bo->base.gbm->fd,
+							bo->planes[i].handle);
+			}
 		}
 	}
 
@@ -433,6 +436,7 @@ static struct gbm_kms_bo* gbm_kms_import_fd(struct gbm_device *gbm,
 	bo->base.stride = fd_data->stride;
 	bo->base.handle.u32 = handle;
 	bo->num_planes = 1;
+	bo->allocated_handle = true;
 
 	return bo;
 }
@@ -476,6 +480,7 @@ static struct gbm_kms_bo *gbm_kms_import_fd_modifier(struct gbm_device *gbm,
 	bo->base.format = gbm_format_canonicalize(fd_data->format);
 	bo->base.stride = fd_data->strides[0];
 	bo->base.handle.u32 = handle[0];
+	bo->allocated_handle = true;
 
 	bo->num_planes = fd_data->num_fds;
 	for (i = 0; i < fd_data->num_fds; i++)  {
