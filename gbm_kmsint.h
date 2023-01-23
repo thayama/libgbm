@@ -28,7 +28,7 @@
 #ifndef __gbm_kmsint_h__
 #define __gbm_kmsint_h__
 
-#include <libkms.h>
+#include <kms_dumb.h>
 #include <stdbool.h>
 
 #include "gbmint.h"

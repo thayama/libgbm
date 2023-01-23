@@ -41,7 +41,7 @@ AC_SEARCH_LIBS([dlopen], [dl dld], [],
 # Obtain compiler/linker options for dependencies
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
 PKG_CHECK_MODULES([LIBDRM], [libdrm])
-PKG_CHECK_MODULES([LIBKMS], [libkms])
+PKG_CHECK_MODULES([LIBKMS], [libkms-dumb])
 PKG_CHECK_MODULES([WAYLAND_KMS], [wayland-kms])
 
 AC_CONFIG_FILES([Makefile gbm.pc])

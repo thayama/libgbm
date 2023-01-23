@@ -39,7 +39,7 @@
 #include <dlfcn.h>
 
 #include <xf86drm.h>
-#include <libkms.h>
+#include <kms_dumb.h>
 #include <errno.h>
 #include <drm_fourcc.h>
 
