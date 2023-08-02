@@ -368,6 +368,29 @@ static union gbm_bo_handle gbm_kms_bo_get_handle(struct gbm_bo *_bo, int plane)
 	return ret;
 }
 
+static int gbm_kms_bo_get_plane_fd(struct gbm_bo *_bo, int plane)
+{
+	struct gbm_kms_bo *bo = (struct gbm_kms_bo*)_bo;
+	struct gbm_kms_device *dev = (struct gbm_kms_device*)bo->base.gbm;
+	uint32_t handle = 0;
+	int ret, fd;
+
+	if (plane < 0 || bo->num_planes <= plane) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	handle = (bo->num_planes == 1) ?
+		bo->base.handle.u32 : bo->planes[plane].handle;
+
+	ret = drmPrimeHandleToFD(dev->base.fd, handle, DRM_CLOEXEC | DRM_RDWR,
+				 &fd);
+	if (ret < 0)
+		return -1;
+
+	return fd;
+}
+
 static uint64_t gbm_kms_bo_get_modifier(struct gbm_bo *_bo)
 {
 	return DRM_FORMAT_MOD_LINEAR;
@@ -644,6 +667,7 @@ struct gbm_device kms_gbm_device = {
 	.bo_get_fd = gbm_kms_bo_get_fd,
 	.bo_get_planes = gbm_kms_bo_get_planes,
 	.bo_get_handle = gbm_kms_bo_get_handle,
+	.bo_get_plane_fd = gbm_kms_bo_get_plane_fd,
 	.bo_get_stride = gbm_kms_bo_get_stride,
 	.bo_get_offset = gbm_kms_bo_get_offset,
 	.bo_get_modifier = gbm_kms_bo_get_modifier,
